@@ -7,10 +7,9 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "استراحة السلام - نظام الحجز الذكي المتطور في ليبيا",
-  description: "استمتع بتجربة حجز استراحة السلام باستخدام نظام الحجز الذكي، الذي يوفر لك سهولة وأمان في اختيار مواعيد الحجز.",
-  keywords: ["استراحة السلام", "نظام الحجز الذكي", "حجز استراحة", "حجز في ليبيا", "نظام حجز ذكي"],
-  generator: 'mousa0mar'
+  title: "استراحة السلام - نظام الحجز الذكي",
+  description: "نظام حجز ذكي لاستراحة السلام باستخدام Qrok Cloud",
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({
