@@ -1,6 +1,13 @@
 import { ChatInterface } from "@/components/chat-interface"
 import { BookingCalendar } from "@/components/booking-calendar"
 
+// إضافة البيانات الخاصة بـ SEO
+export const metadata = {
+  title: "استراحة السلام - نظام الحجز الذكي في ليبيا",
+  description: "احجز استراحتك الآن باستخدام نظام الحجز الذكي عبر Qrok Cloud. تجربة سهلة وآمنة للحجوزات في ليبيا.",
+  keywords: ["حجز استراحة", "نظام حجز", "استراحة السلام", "حجز ليبيا", "Qrok Cloud", "حجز ذكي"],
+}
+
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-24">
