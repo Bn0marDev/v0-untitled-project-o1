@@ -19,7 +19,7 @@ export async function sendVerificationEmail(
     })
 
     const { data, error } = await resend.emails.send({
-      from: "حجوزات السلام <noreply@mousa.org.ly>",
+      from: "حجوزات السلام <onboarding@resend.dev>",
       to: email,
       subject: `تأكيد حجز استراحة السلام - ${bookingReference}`,
       html: `
@@ -68,7 +68,7 @@ export async function sendBookingConfirmationEmail(
     })
 
     const { data, error } = await resend.emails.send({
-      from: "حجوزات السلام <noreply@mousa.org.ly>",
+      from: "حجوزات السلام <onboarding@resend.dev>",
       to: email,
       subject: `تم تأكيد حجزك في استراحة السلام - ${bookingReference}`,
       html: `

@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Send, Loader2 } from "lucide-react"
-import { generateText } from "ai"
-import { groq } from "@ai-sdk/groq"
 
 type Message = {
   role: "user" | "assistant"
@@ -49,33 +47,25 @@ export function ChatInterface() {
         .map((msg) => `${msg.role === "user" ? "المستخدم" : "المساعد"}: ${msg.content}`)
         .join("\n\n")
 
-      // Generate response using Groq AI
-      const response = await generateText({
-        model: groq("llama3-70b-8192", { apiKey: process.env.GROQ_API_KEY }),
-        prompt: `
-          أنت مساعد حجز ذكي لاستراحة السلام في ليبيا. تساعد العملاء في حجز الاستراحة والاستعلام عن الحجوزات وإلغائها.
-          
-          معلومات مهمة:
-          - سعر الحجز هو 250 دينار ليبي لليوم الواحد
-          - يجب جمع اسم العميل ورقم هاتفه وبريده الإلكتروني لإتمام الحجز
-          - بعد تأكيد الحجز، يتم إرسال رمز تحقق من 4 أرقام عبر البريد الإلكتروني
-          - بعد التحقق، يحصل العميل على رمز سري من 6 أرقام للاستعلام عن الحجز أو إلغائه
-          
-          سياق المحادثة الحالية:
-          ${context}
-          
-          رسالة المستخدم الأخيرة: ${input}
-          
-          أجب بشكل مهذب ومفيد باللغة العربية. إذا كان المستخدم يريد الحجز، اسأله عن التاريخ المطلوب ثم اجمع معلوماته.
-          إذا كان يستعلم عن حجز، اطلب منه الرمز السري.
-          إذا كان يريد إلغاء حجز، اطلب منه الرمز السري ثم اطلب تأكيد الإلغاء.
-          
-          ملاحظة: أنت تتعامل مع قاعدة بيانات حقيقية، لذا تعامل مع المعلومات بجدية.
-        `,
+      // Use server-side API endpoint instead of direct Groq API call
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: input,
+          userId,
+          context,
+        }),
       })
 
-      // Process the response to handle database operations
-      const aiResponse = response.text
+      if (!response.ok) {
+        throw new Error("Failed to get AI response")
+      }
+
+      const data = await response.json()
+      const aiResponse = data.response
 
       // Add AI response to chat
       setMessages((prev) => [
