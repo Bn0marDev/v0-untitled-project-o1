@@ -46,7 +46,7 @@
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",
     "next": "15.2.4",
-    "next-themes": "^0.4.4",
+    "next-themes": "latest",
     "react": "^19",
     "react-day-picker": "8.10.1",
     "react-dom": "^19",
@@ -59,11 +59,11 @@
     "vaul": "^0.9.6",
     "zod": "^3.24.1",
     "@emotion/is-prop-valid": "latest",
-    "@neondatabase/serverless": "latest",
     "framer-motion": "latest",
     "ai": "latest",
     "@ai-sdk/groq": "latest",
-    "resend": "latest"
+    "resend": "latest",
+    "@neondatabase/serverless": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

@@ -7,7 +7,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Loader2, Search, Eye, XCircle, CheckCircle } from "lucide-react"
+import { Loader2, Search, Eye, XCircle, CheckCircle, Trash2 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { toast } from "@/components/ui/use-toast"
 
 type BookingsListProps = {
   bookings: any[]
@@ -19,6 +28,7 @@ export function BookingsList({ bookings, isLoading, onRefresh }: BookingsListPro
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedBooking, setSelectedBooking] = useState<any | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isActionLoading, setIsActionLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -33,6 +43,42 @@ export function BookingsList({ bookings, isLoading, onRefresh }: BookingsListPro
   const handleViewBooking = (booking: any) => {
     setSelectedBooking(booking)
     setIsDialogOpen(true)
+  }
+
+  const handleDeleteBooking = (booking: any) => {
+    setSelectedBooking(booking)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDeleteBooking = async () => {
+    if (!selectedBooking) return
+
+    setIsActionLoading(true)
+    setActionError(null)
+
+    try {
+      const response = await fetch(`/api/admin/bookings/${selectedBooking.id}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || "Failed to delete booking")
+      }
+
+      // Close dialog and refresh bookings
+      setIsDeleteDialogOpen(false)
+      toast({
+        title: "تم حذف الحجز",
+        description: `تم حذف الحجز رقم ${selectedBooking.booking_reference} بنجاح`,
+      })
+      onRefresh()
+    } catch (error) {
+      console.error("Error deleting booking:", error)
+      setActionError((error as Error).message)
+    } finally {
+      setIsActionLoading(false)
+    }
   }
 
   const handleStatusChange = async (bookingId: number, newStatus: string) => {
@@ -55,6 +101,10 @@ export function BookingsList({ bookings, isLoading, onRefresh }: BookingsListPro
 
       // Close dialog and refresh bookings
       setIsDialogOpen(false)
+      toast({
+        title: "تم تحديث الحالة",
+        description: `تم تحديث حالة الحجز إلى "${newStatus === "confirmed" ? "مؤكد" : newStatus === "cancelled" ? "ملغي" : "قيد الانتظار"}"`,
+      })
       onRefresh()
     } catch (error) {
       console.error("Error updating booking status:", error)
@@ -76,20 +126,20 @@ export function BookingsList({ bookings, isLoading, onRefresh }: BookingsListPro
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "confirmed":
-        return <Badge className="bg-green-500">مؤكد</Badge>
+        return <Badge className="bg-primary">مؤكد</Badge>
       case "pending":
         return <Badge className="bg-yellow-500">قيد الانتظار</Badge>
       case "cancelled":
-        return <Badge className="bg-red-500">ملغي</Badge>
+        return <Badge className="bg-destructive">ملغي</Badge>
       default:
-        return <Badge className="bg-gray-500">{status}</Badge>
+        return <Badge className="bg-muted">{status}</Badge>
     }
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center">
-        <Search className="h-4 w-4 mr-2 text-gray-500" />
+        <Search className="h-4 w-4 mr-2 text-muted-foreground" />
         <Input
           placeholder="بحث عن حجز..."
           value={searchTerm}
@@ -101,10 +151,10 @@ export function BookingsList({ bookings, isLoading, onRefresh }: BookingsListPro
 
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : filteredBookings.length === 0 ? (
-        <div className="text-center py-8 text-gray-500" dir="rtl">
+        <div className="text-center py-8 text-muted-foreground" dir="rtl">
           لا توجد حجوزات مطابقة للبحث
         </div>
       ) : (
@@ -129,9 +179,41 @@ export function BookingsList({ bookings, isLoading, onRefresh }: BookingsListPro
                   <TableCell>{getStatusBadge(booking.status)}</TableCell>
                   <TableCell>{booking.price} د.ل</TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm" onClick={() => handleViewBooking(booking)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>إجراءات</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleViewBooking(booking)}>
+                          <Eye className="h-4 w-4 ml-2" />
+                          عرض التفاصيل
+                        </DropdownMenuItem>
+                        {booking.status !== "confirmed" && (
+                          <DropdownMenuItem onClick={() => handleStatusChange(booking.id, "confirmed")}>
+                            <CheckCircle className="h-4 w-4 ml-2" />
+                            تأكيد الحجز
+                          </DropdownMenuItem>
+                        )}
+                        {booking.status !== "cancelled" && (
+                          <DropdownMenuItem onClick={() => handleStatusChange(booking.id, "cancelled")}>
+                            <XCircle className="h-4 w-4 ml-2" />
+                            إلغاء الحجز
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteBooking(booking)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 ml-2" />
+                          حذف الحجز
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
@@ -151,35 +233,35 @@ export function BookingsList({ bookings, isLoading, onRefresh }: BookingsListPro
             <div className="space-y-4" dir="rtl">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500">رقم الحجز</p>
+                  <p className="text-sm text-muted-foreground">رقم الحجز</p>
                   <p className="font-medium">{selectedBooking.booking_reference}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">الرمز السري</p>
+                  <p className="text-sm text-muted-foreground">الرمز السري</p>
                   <p className="font-medium">{selectedBooking.secret_code}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">الاسم</p>
+                  <p className="text-sm text-muted-foreground">الاسم</p>
                   <p className="font-medium">{selectedBooking.customer_name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">رقم الهاتف</p>
+                  <p className="text-sm text-muted-foreground">رقم الهاتف</p>
                   <p className="font-medium">{selectedBooking.customer_phone}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">تاريخ الحجز</p>
+                  <p className="text-sm text-muted-foreground">تاريخ الحجز</p>
                   <p className="font-medium">{formatDate(selectedBooking.booking_date)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">السعر</p>
+                  <p className="text-sm text-muted-foreground">السعر</p>
                   <p className="font-medium">{selectedBooking.price} د.ل</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">الحالة</p>
+                  <p className="text-sm text-muted-foreground">الحالة</p>
                   <p className="font-medium">{getStatusBadge(selectedBooking.status)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">تاريخ الإنشاء</p>
+                  <p className="text-sm text-muted-foreground">تاريخ الإنشاء</p>
                   <p className="font-medium">{formatDate(selectedBooking.created_at)}</p>
                 </div>
               </div>
@@ -195,7 +277,7 @@ export function BookingsList({ bookings, isLoading, onRefresh }: BookingsListPro
                   <Button
                     onClick={() => handleStatusChange(selectedBooking.id, "confirmed")}
                     disabled={isActionLoading}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-primary hover:bg-primary/90"
                   >
                     {isActionLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -229,6 +311,56 @@ export function BookingsList({ bookings, isLoading, onRefresh }: BookingsListPro
               إغلاق
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-center text-destructive">تأكيد حذف الحجز</DialogTitle>
+          </DialogHeader>
+
+          {selectedBooking && (
+            <div className="space-y-4" dir="rtl">
+              <p className="text-center">
+                هل أنت متأكد من رغبتك في حذف الحجز رقم <strong>{selectedBooking.booking_reference}</strong>؟
+              </p>
+              <p className="text-center text-sm text-muted-foreground">
+                هذا الإجراء لا يمكن التراجع عنه وسيؤدي إلى حذف جميع بيانات الحجز نهائياً.
+              </p>
+
+              {actionError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{actionError}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="flex justify-between gap-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDeleteDialogOpen(false)}
+                  disabled={isActionLoading}
+                  className="flex-1"
+                >
+                  إلغاء
+                </Button>
+                <Button
+                  onClick={confirmDeleteBooking}
+                  disabled={isActionLoading}
+                  variant="destructive"
+                  className="flex-1"
+                >
+                  {isActionLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-2" />
+                  )}
+                  تأكيد الحذف
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

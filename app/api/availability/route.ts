@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { getAvailableDates } from "@/lib/db"
 
 export async function GET(req: NextRequest) {
   try {
@@ -26,15 +27,11 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Generate mock data for testing
-    const mockData = generateMockAvailabilityData(startDate, endDate)
+    // Get available dates from the database
+    const availableDates = await getAvailableDates(startDate, endDate)
 
-    console.log("Returning mock availability data")
-    return NextResponse.json({ dates: mockData })
-
-    // Uncomment this when database is working properly
-    // const availableDates = await getAvailableDates(startDate, endDate)
-    // return NextResponse.json({ dates: availableDates || [] })
+    console.log(`Returning ${availableDates.length} dates from database`)
+    return NextResponse.json({ dates: availableDates || [] })
   } catch (error) {
     console.error("Error in availability API:", error)
     // Always return a valid JSON response even on error
@@ -43,25 +40,4 @@ export async function GET(req: NextRequest) {
       dates: [],
     })
   }
-}
-
-// Helper function to generate mock availability data for testing
-function generateMockAvailabilityData(startDate: string, endDate: string) {
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-  const result = []
-
-  for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
-    const dateString = date.toISOString().split("T")[0]
-
-    // Make some random dates unavailable (for testing)
-    const isAvailable = Math.random() > 0.2 // 20% chance of being unavailable
-
-    result.push({
-      date: dateString,
-      available: isAvailable,
-    })
-  }
-
-  return result
 }

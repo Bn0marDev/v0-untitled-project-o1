@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Booking reference and OTP code are required" }, { status: 400 })
     }
 
-    // Verify OTP
+    // Verify OTP - this now strictly checks against the database
     const isVerified = await verifyOTP(bookingReference, otpCode)
 
     if (!isVerified) {
@@ -20,7 +20,11 @@ export async function POST(req: NextRequest) {
     // Get booking details to send confirmation email
     const booking = await getBookingByReference(bookingReference)
 
-    if (booking && email) {
+    if (!booking) {
+      return NextResponse.json({ error: "Booking not found" }, { status: 404 })
+    }
+
+    if (email) {
       // Send confirmation email with secret code
       await sendBookingConfirmationEmail(
         email,
@@ -34,7 +38,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Booking confirmed successfully",
-      secretCode: booking?.secret_code,
+      secretCode: booking.secret_code,
     })
   } catch (error) {
     console.error("Error verifying booking:", error)

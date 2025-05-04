@@ -87,43 +87,52 @@ export async function createVerificationCode(bookingId: number): Promise<string>
 }
 
 export async function verifyOTP(bookingReference: string, otpCode: string): Promise<boolean> {
-  const booking = await sql`
-    SELECT id FROM bookings WHERE booking_reference = ${bookingReference} AND status = 'pending'
-  `
+  try {
+    // Get the booking ID from the reference
+    const booking = await sql`
+      SELECT id FROM bookings WHERE booking_reference = ${bookingReference} AND status = 'pending'
+    `
 
-  if (booking.length === 0) {
+    if (booking.length === 0) {
+      console.log("No pending booking found with reference:", bookingReference)
+      return false
+    }
+
+    const bookingId = booking[0].id
+
+    // Check if the OTP code is valid and not expired
+    const verification = await sql`
+      SELECT id FROM verification_codes 
+      WHERE booking_id = ${bookingId} 
+      AND otp_code = ${otpCode} 
+      AND expires_at > NOW() 
+      AND verified = false
+    `
+
+    if (verification.length === 0) {
+      console.log("Invalid or expired OTP code for booking:", bookingReference)
+      return false
+    }
+
+    // Mark OTP as verified
+    await sql`
+      UPDATE verification_codes 
+      SET verified = true 
+      WHERE id = ${verification[0].id}
+    `
+
+    // Update booking status to confirmed
+    await sql`
+      UPDATE bookings 
+      SET status = 'confirmed' 
+      WHERE id = ${bookingId}
+    `
+
+    return true
+  } catch (error) {
+    console.error("Error verifying OTP:", error)
     return false
   }
-
-  const bookingId = booking[0].id
-
-  const verification = await sql`
-    SELECT id FROM verification_codes 
-    WHERE booking_id = ${bookingId} 
-    AND otp_code = ${otpCode} 
-    AND expires_at > NOW() 
-    AND verified = false
-  `
-
-  if (verification.length === 0) {
-    return false
-  }
-
-  // Mark OTP as verified
-  await sql`
-    UPDATE verification_codes 
-    SET verified = true 
-    WHERE id = ${verification[0].id}
-  `
-
-  // Update booking status to confirmed
-  await sql`
-    UPDATE bookings 
-    SET status = 'confirmed' 
-    WHERE id = ${bookingId}
-  `
-
-  return true
 }
 
 export async function getBookingBySecretCode(secretCode: string) {
@@ -145,7 +154,7 @@ export async function cancelBooking(secretCode: string): Promise<boolean> {
   return result.count > 0
 }
 
-// Simplified function to get available dates
+// Function to get available dates from the database
 export async function getAvailableDates(startDate: string, endDate: string) {
   try {
     // Generate all dates in the range
